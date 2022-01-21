@@ -1,0 +1,76 @@
+---
+title: "Project1"
+author: "Adrian Flores"
+date: "21/1/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r project1}
+
+library(ggplot2)
+library(plyr)
+## Loading and preprocessing the data
+
+activity <- read.csv("activity.csv")
+activity$day <- weekdays(as.Date(activity$date))
+activity$DateTime<- as.POSIXct(activity$date, format="%Y-%m-%d")
+clean <- activity[!is.na(activity$steps),]
+
+## What is mean total number of steps taken per day?
+sumTable <- aggregate(activity$steps ~ activity$date, FUN=sum, )
+colnames(sumTable)<- c("Date", "Steps")
+
+hist(sumTable$Steps, breaks=5, xlab="Steps", main = "Total Steps per Day")
+as.integer(mean(sumTable$Steps))
+as.integer(median(sumTable$Steps))
+
+
+## What is the average daily activity pattern?
+library(plyr)
+library(ggplot2)
+
+clean <- activity[!is.na(activity$steps),]
+intervalTable <- ddply(clean, .(interval), summarize, Avg = mean(steps))
+p <- ggplot(intervalTable, aes(x=interval, y=Avg), xlab = "Interval", ylab="Average Number of Steps")
+p + geom_line()+xlab("Interval")+ylab("Average Number of Steps")+ggtitle("Average Number of Steps per Interval")
+maxSteps <- max(intervalTable$Avg)
+intervalTable[intervalTable$Avg==maxSteps,1]
+
+
+## Imputing missing values
+ nrow(activity[is.na(activity$steps),])
+ avgTable <- ddply(clean, .(interval, day), summarize, Avg = mean(steps))
+ nadata<- activity[is.na(activity$steps),]
+ newdata<-merge(nadata, avgTable, by=c("interval", "day"))
+ newdata2<- newdata[,c(6,4,1,2,5)]
+ colnames(newdata2)<- c("steps", "date", "interval", "day", "DateTime")
+ mergeData <- rbind(clean, newdata2)
+ sumTable2 <- aggregate(mergeData$steps ~ mergeData$date, FUN=sum, )
+ colnames(sumTable2)<- c("Date", "Steps")
+ as.integer(mean(sumTable2$Steps))
+ as.integer(median(sumTable2$Steps))
+ hist(sumTable2$Steps, breaks=5, xlab="Steps", main = "Total Steps per Day with NAs Fixed", col="Black")
+ hist(sumTable$Steps, breaks=5, xlab="Steps", main = "Total Steps per Day with NAs Fixed", col="Grey", add=T)
+ legend("topright", c("Imputed Data", "Non-NA Data"), fill=c("black", "grey") )
+
+
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+ mergeData$DayCategory <- ifelse(mergeData$day %in% c("Saturday", "Sunday"), "Weekend", "Weekday")
+ library(lattice) 
+```
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
